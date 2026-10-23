@@ -1,0 +1,819 @@
+{
+  "info": {
+    "name": "charging-two-mock",
+    "description": "Mocks REST ElecPay. Execute em ordem; altere run_id para cada fluxo novo. Ajuste token e base_url.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:9083",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "local-test-token",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "manual-001",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recovered_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Saúde",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/healthz",
+        "description": "200. Endpoint público."
+      }
+    },
+    {
+      "name": "Capacidades",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/capabilities",
+        "description": "200. Capacidades do perfil."
+      }
+    },
+    {
+      "name": "Consultar conectores",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/connectors",
+        "description": "200. connector-1 precisa estar AVAILABLE para iniciar."
+      }
+    },
+    {
+      "name": "Solicitar início",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-start",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions",
+        "description": "202, PENDING. Copie id para session_id.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"connector_id\":\"connector-1\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  pm.collectionVariables.set(\"session_id\", pm.response.json().id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultar sessão",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions/{{session_id}}",
+        "description": "200. Acompanhe por esta rota durante todo o fluxo."
+      }
+    },
+    {
+      "name": "Conector ocupado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-busy",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions",
+        "description": "409 connector_busy enquanto a primeira sessão não encerrou.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"connector_id\":\"connector-1\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Confirmar ativação",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-activate",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/_mock/sessions/{{session_id}}/activate",
+        "description": "200, ACTIVE. Controle do simulador.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Atualizar medição",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-meter",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/_mock/sessions/{{session_id}}/meter",
+        "description": "200. Medição acumulada: 12000 Wh = 12 kWh.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"energy_wh\":12000}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Solicitar parada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-stop",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions/{{session_id}}/stop",
+        "description": "200, STOP_REQUESTED.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Documento antes do fechamento",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions/{{session_id}}/receipt",
+        "description": "404 not_found antes de COMPLETED."
+      }
+    },
+    {
+      "name": "Confirmar encerramento",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-complete",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/_mock/sessions/{{session_id}}/complete",
+        "description": "200, COMPLETED. cost_cents=3000. O conector volta a ficar disponível.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Consultar documento final",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions/{{session_id}}/receipt",
+        "description": "200. Documento simplificado com sessão e moeda BRL."
+      }
+    },
+    {
+      "name": "Consultar eventos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/events",
+        "description": "404 poll_sessions_instead. Este operador usa consulta da sessão."
+      }
+    },
+    {
+      "name": "Transição inválida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-invalid-transition",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/_mock/sessions/{{session_id}}/activate",
+        "description": "409 invalid_transition: sessão já completada.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Sem autenticação",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/capabilities",
+        "description": "401 invalid_token."
+      }
+    },
+    {
+      "name": "Rejeição do provedor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Mock-Scenario",
+            "value": "reject",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/capabilities",
+        "description": "422 provider_rejected."
+      }
+    },
+    {
+      "name": "Provedor indisponível",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Mock-Scenario",
+            "value": "unavailable",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/capabilities",
+        "description": "503 provider_unavailable."
+      }
+    },
+    {
+      "name": "Atraso antes de processar",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Mock-Scenario",
+            "value": "timeout",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/capabilities",
+        "description": "Espera três segundos. Configure Request timeout do Postman em 1000 ms para observar timeout, ou acima de 3000 ms para receber a resposta."
+      }
+    },
+    {
+      "name": "Timeout após efetivação",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-uncertain",
+            "type": "text"
+          },
+          {
+            "key": "X-Mock-Scenario",
+            "value": "timeout-after-commit",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions",
+        "description": "Execute após concluir o fluxo anterior. Configure Request timeout em 1000 ms; o estado pode ser efetivado mesmo sem resposta. Depois execute Recuperar comando incerto.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"connector_id\":\"connector-1\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Recuperar comando incerto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-uncertain",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions",
+        "description": "Restaure Request timeout para 10000 ms. Mesma chave, rota e corpo: recupera resposta sem duplicar. Copie id para recovered_id.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"connector_id\":\"connector-1\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  pm.collectionVariables.set(\"recovered_id\", pm.response.json().id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultar recurso recuperado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions/{{recovered_id}}",
+        "description": "200. Consulta o resultado do comando incerto."
+      }
+    },
+    {
+      "name": "Conflito de idempotência",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-uncertain",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions",
+        "description": "409 idempotency_conflict: mesma chave, corpo diferente.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"amount_cents\":1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Ativar sessão recuperada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-recovered-activate",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/_mock/sessions/{{recovered_id}}/activate",
+        "description": "200, ACTIVE. Limpeza do fluxo de timeout.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Parar sessão recuperada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-recovered-stop",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/sessions/{{recovered_id}}/stop",
+        "description": "200, STOP_REQUESTED.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Concluir sessão recuperada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{run_id}}-recovered-complete",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/_mock/sessions/{{recovered_id}}/complete",
+        "description": "200, COMPLETED. Libera o conector para uma nova execução.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

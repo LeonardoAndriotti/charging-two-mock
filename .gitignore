@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.vercel/
+.idea/
+server
+bin/
+coverage.out

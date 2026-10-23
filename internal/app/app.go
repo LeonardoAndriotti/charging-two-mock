@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"crypto/subtle"
 	"elecpay.local/charging-two-mock/internal/simulator"
 	"elecpay.local/charging-two-mock/internal/storage"
 	"encoding/json"
@@ -21,31 +20,45 @@ func reply(w http.ResponseWriter, status int, message string) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 func FromEnv(profile string) (http.Handler, error) {
-	token := os.Getenv("MOCK_API_TOKEN")
-	if token == "" {
-		return nil, errors.New("MOCK_API_TOKEN is required")
+	url, secret, key, err := redisSettings(profile)
+	if err != nil {
+		return nil, err
 	}
-	url, secret := os.Getenv("UPSTASH_REDIS_REST_URL"), os.Getenv("UPSTASH_REDIS_REST_TOKEN")
 	var store storage.Store
-	if url != "" || secret != "" {
-		if !strings.HasPrefix(url, "https://") || secret == "" {
-			return nil, errors.New("Redis HTTPS URL and token are required together")
-		}
-		key := os.Getenv("MOCK_STATE_KEY")
-		if key == "" {
-			key = profile + ":local:state:v1"
-		}
-		if os.Getenv("VERCEL") != "" && os.Getenv("MOCK_STATE_KEY") == "" {
-			return nil, errors.New("MOCK_STATE_KEY must isolate the deployment environment")
-		}
+	if url != "" {
 		store = storage.NewRedis(url, secret, key)
 	}
-	if os.Getenv("VERCEL") != "" && store == nil {
-		return nil, errors.New("persistent Redis storage is required on Vercel")
-	}
-	return New(profile, token, store), nil
+	return New(profile, store), nil
 }
-func New(profile, token string, store storage.Store) http.Handler {
+
+// redisSettings accepts both direct Upstash credentials and Marketplace aliases.
+// A partially configured pair is an error; credentials from different pairs are never mixed.
+func redisSettings(profile string) (string, string, string, error) {
+	url, secret := os.Getenv("UPSTASH_REDIS_REST_URL"), os.Getenv("UPSTASH_REDIS_REST_TOKEN")
+	if url == "" && secret == "" {
+		url, secret = os.Getenv("KV_REST_API_URL"), os.Getenv("KV_REST_API_TOKEN")
+	}
+	if url != "" || secret != "" {
+		if !strings.HasPrefix(url, "https://") || secret == "" {
+			return "", "", "", errors.New("Redis HTTPS URL and token are required together")
+		}
+	} else if os.Getenv("VERCEL") != "" {
+		return "", "", "", errors.New("persistent Redis storage is required on Vercel: configure KV_REST_API_URL and KV_REST_API_TOKEN or the UPSTASH_REDIS_REST pair")
+	}
+	key := os.Getenv("MOCK_STATE_KEY")
+	if key == "" {
+		environment := "local"
+		if os.Getenv("VERCEL") != "" {
+			environment = os.Getenv("VERCEL_ENV")
+			if environment == "" {
+				return "", "", "", errors.New("VERCEL_ENV or explicit MOCK_STATE_KEY is required on Vercel")
+			}
+		}
+		key = profile + ":" + environment + ":state:v1"
+	}
+	return url, secret, key, nil
+}
+func New(profile string, store storage.Store) http.Handler {
 	local := simulator.New(profile)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -53,13 +66,8 @@ func New(profile, token string, store storage.Store) http.Handler {
 			local.ServeHTTP(w, r)
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+token)) != 1 {
-			reply(w, 401, "invalid_token")
-			return
-		}
 		request := r.Clone(r.Context())
 		request.Header = request.Header.Clone()
-		request.Header.Set("Authorization", "Bearer local-test-token")
 		if store == nil {
 			local.ServeHTTP(w, request)
 			return

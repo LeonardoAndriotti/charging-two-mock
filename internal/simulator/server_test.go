@@ -12,7 +12,7 @@ import (
 
 func call(s *Server, method, path, key, body string) (int, map[string]any) {
 	r := httptest.NewRequest(method, path, bytes.NewBufferString(body))
-	r.Header.Set("Authorization", "Bearer local-test-token")
+
 	r.Header.Set("Idempotency-Key", key)
 	w := httptest.NewRecorder()
 	s.ServeHTTP(w, r)
@@ -113,7 +113,7 @@ func TestTransportValidation(t *testing.T) {
 	r := httptest.NewRequest("POST", "/v1/wallets", bytes.NewBufferString("{}"))
 	w := httptest.NewRecorder()
 	s.ServeHTTP(w, r)
-	if w.Code != 401 {
+	if w.Code != 400 {
 		t.Fatal(w.Code)
 	}
 	must(t, s, "/v1/wallets", "", "{}", 400)
@@ -121,7 +121,7 @@ func TestTransportValidation(t *testing.T) {
 	must(t, s, "/v1/wallets", "unknown", `{"typo":1}`, 400)
 	for _, scenario := range []string{"reject", "unavailable", "unknown"} {
 		r := httptest.NewRequest("POST", "/v1/wallets", bytes.NewBufferString("{}"))
-		r.Header.Set("Authorization", "Bearer local-test-token")
+
 		r.Header.Set("X-Mock-Scenario", scenario)
 		w := httptest.NewRecorder()
 		s.ServeHTTP(w, r)
@@ -136,7 +136,7 @@ func TestTimeoutAfterCommitRecovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	r := httptest.NewRequest("POST", "/v1/wallets", bytes.NewBufferString("{}")).WithContext(ctx)
-	r.Header.Set("Authorization", "Bearer local-test-token")
+
 	r.Header.Set("Idempotency-Key", "uncertain")
 	r.Header.Set("X-Mock-Scenario", "timeout-after-commit")
 	w := httptest.NewRecorder()
@@ -152,7 +152,7 @@ func TestTimeoutBeforeCommitCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	r := httptest.NewRequest("POST", "/v1/wallets", bytes.NewBufferString("{}")).WithContext(ctx)
-	r.Header.Set("Authorization", "Bearer local-test-token")
+
 	r.Header.Set("Idempotency-Key", "cancelled")
 	r.Header.Set("X-Mock-Scenario", "timeout")
 	s.ServeHTTP(httptest.NewRecorder(), r)

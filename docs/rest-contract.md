@@ -12,7 +12,7 @@ make charging-ocpi   # 127.0.0.1:9082, operador fictício A inspirado em OCPI
 make charging-rest   # 127.0.0.1:9083, operador fictício B com polling
 ```
 
-`MOCK_ADDR` altera o endereço de cada processo. Estado isolado em memória; reiniciar limpa tudo. Bind padrão em loopback. O token fixo de teste é `local-test-token`. Não publicar estes servidores em produção. Rotas `/_mock` são controles do teste e não devem ser chamadas pelos adaptadores do backend.
+`MOCK_ADDR` altera o endereço de cada processo. Estado isolado em memória; reiniciar limpa tudo. Bind padrão em loopback. As APIs não exigem autenticação. Não publicar estes servidores em produção. Rotas `/_mock` são controles do teste e não devem ser chamadas pelos adaptadores do backend.
 
 ```sh
 make check # testes com detector de race, build, vet e formatação
@@ -20,7 +20,7 @@ make check # testes com detector de race, build, vet e formatação
 
 ## Contrato HTTP
 
-`GET /healthz` é público. Demais chamadas exigem `Authorization: Bearer local-test-token`. Todo POST exige JSON e `Idempotency-Key`. A mesma chave e os mesmos bytes de corpo/rota retornam a resposta original. Reutilizar chave com corpo ou rota diferente retorna 409. Chaves são globais por processo, sobrevivem apenas até reiniciar e respostas de erro não são armazenadas. Não existe expiração ou limpeza de chaves.
+`GET /healthz` é público. Todos os demais endpoints também são públicos. Todo POST exige JSON e `Idempotency-Key`. A mesma chave e os mesmos bytes de corpo/rota retornam a resposta original. Reutilizar chave com corpo ou rota diferente retorna 409. Chaves são globais por processo, sobrevivem apenas até reiniciar e respostas de erro não são armazenadas. Não existe expiração ou limpeza de chaves.
 
 Valores financeiros positivos são inteiros em centavos BRL; limite por crédito/reserva de 100.000.000 centavos. Captura deve ser positiva e menor ou igual à reserva. Medição é acumulada, não decresce e limita a sessão a 1.000.000 Wh. O custo final arredonda para cima ao centavo: `(Wh * tarifa_centavos_kWh + 999) / 1000`.
 
@@ -49,23 +49,20 @@ Valores financeiros positivos são inteiros em centavos BRL; limite por crédito
 
 Documentos finais retornam 404 antes de COMPLETED. Um único conector existe por operador; aceita apenas uma sessão não encerrada. O perfil B retorna 404 para `/v1/events`. A carteira e os dois operadores não compartilham dados.
 
-Erros JSON: `{"error":"codigo"}`. Status: 400 para entrada inválida/chave ausente, 401 para token, 404 para recurso ausente, 405 para método inválido, 409 para conflito/estado/saldo, 422 para rejeição simulada, 503 para indisponibilidade. POSTs de transição respondem 200, criação 201 e início de sessão 202. Campos JSON desconhecidos e múltiplos objetos são rejeitados; envie apenas os campos documentados para cada operação. O decoder compartilhado reconhece os quatro campos de entrada da tabela, mas não exige exclusividade por rota.
+Erros JSON: `{"error":"codigo"}`. Status: 400 para entrada inválida/chave ausente, 404 para recurso ausente, 405 para método inválido, 409 para conflito/estado/saldo, 422 para rejeição simulada, 503 para indisponibilidade. POSTs de transição respondem 200, criação 201 e início de sessão 202. Campos JSON desconhecidos e múltiplos objetos são rejeitados; envie apenas os campos documentados para cada operação. O decoder compartilhado reconhece os quatro campos de entrada da tabela, mas não exige exclusividade por rota.
 
 ## Exemplo reproduzível
 
 ```sh
 curl -sS http://127.0.0.1:9081/v1/wallets \
-  -H 'Authorization: Bearer local-test-token' \
   -H 'Idempotency-Key: wallet-1' -H 'Content-Type: application/json' -d '{}'
 
 # Copie o id retornado para wallet_id.
 curl -sS http://127.0.0.1:9081/v1/topups \
-  -H 'Authorization: Bearer local-test-token' \
   -H 'Idempotency-Key: topup-1' -H 'Content-Type: application/json' \
   -d '{"wallet_id":"wal_000001","amount_cents":10000}'
 
 curl -sS http://127.0.0.1:9082/v1/sessions \
-  -H 'Authorization: Bearer local-test-token' \
   -H 'Idempotency-Key: start-1' -H 'Content-Type: application/json' \
   -d '{"connector_id":"connector-1"}'
 ```

@@ -71,10 +71,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		write(w, 200, map[string]string{"status": "ok", "profile": s.profile})
 		return
 	}
-	if r.Header.Get("Authorization") != "Bearer local-test-token" {
-		fail(w, 401, "invalid_token")
-		return
-	}
 	// Delay runs before state mutation, allowing deterministic timeout tests.
 	switch r.Header.Get("X-Mock-Scenario") {
 	case "unavailable":

@@ -1,18 +1,13 @@
 {
   "info": {
     "name": "charging-two-mock",
-    "description": "Mocks REST ElecPay. Execute em ordem; altere run_id para cada fluxo novo. Ajuste token e base_url.",
+    "description": "Mocks REST ElecPay. Execute em ordem; altere run_id para cada fluxo novo. Ajuste base_url.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://127.0.0.1:9083",
-      "type": "string"
-    },
-    {
-      "key": "token",
-      "value": "local-test-token",
+      "value": "https://charging-two-mock.vercel.app",
       "type": "string"
     },
     {
@@ -44,7 +39,7 @@
           }
         ],
         "url": "{{base_url}}/healthz",
-        "description": "200. Endpoint público."
+        "description": "200. Endpoint público, sem token."
       }
     },
     {
@@ -55,11 +50,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           }
         ],
@@ -76,11 +66,6 @@
             "key": "Accept",
             "value": "application/json",
             "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
           }
         ],
         "url": "{{base_url}}/v1/connectors",
@@ -95,11 +80,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -148,11 +128,6 @@
             "key": "Accept",
             "value": "application/json",
             "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
           }
         ],
         "url": "{{base_url}}/v1/sessions/{{session_id}}",
@@ -167,11 +142,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -209,11 +179,6 @@
             "type": "text"
           },
           {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
             "key": "Content-Type",
             "value": "application/json",
             "type": "text"
@@ -245,11 +210,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -287,11 +247,6 @@
             "type": "text"
           },
           {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
             "key": "Content-Type",
             "value": "application/json",
             "type": "text"
@@ -324,11 +279,6 @@
             "key": "Accept",
             "value": "application/json",
             "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
           }
         ],
         "url": "{{base_url}}/v1/sessions/{{session_id}}/receipt",
@@ -343,11 +293,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -383,11 +328,6 @@
             "key": "Accept",
             "value": "application/json",
             "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
           }
         ],
         "url": "{{base_url}}/v1/sessions/{{session_id}}/receipt",
@@ -403,11 +343,6 @@
             "key": "Accept",
             "value": "application/json",
             "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
           }
         ],
         "url": "{{base_url}}/v1/events",
@@ -422,11 +357,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -454,21 +384,6 @@
       }
     },
     {
-      "name": "Sem autenticação",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "url": "{{base_url}}/v1/capabilities",
-        "description": "401 invalid_token."
-      }
-    },
-    {
       "name": "Rejeição do provedor",
       "request": {
         "method": "GET",
@@ -476,11 +391,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -504,11 +414,6 @@
             "type": "text"
           },
           {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
             "key": "X-Mock-Scenario",
             "value": "unavailable",
             "type": "text"
@@ -529,11 +434,6 @@
             "type": "text"
           },
           {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
             "key": "X-Mock-Scenario",
             "value": "timeout",
             "type": "text"
@@ -551,11 +451,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -595,11 +490,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -648,11 +538,6 @@
             "key": "Accept",
             "value": "application/json",
             "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
           }
         ],
         "url": "{{base_url}}/v1/sessions/{{recovered_id}}",
@@ -667,11 +552,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
@@ -709,11 +589,6 @@
             "type": "text"
           },
           {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
             "key": "Content-Type",
             "value": "application/json",
             "type": "text"
@@ -748,11 +623,6 @@
             "type": "text"
           },
           {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
             "key": "Content-Type",
             "value": "application/json",
             "type": "text"
@@ -784,11 +654,6 @@
           {
             "key": "Accept",
             "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
             "type": "text"
           },
           {
